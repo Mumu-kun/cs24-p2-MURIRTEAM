@@ -1,3 +1,9 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+    .btn {
+		@apply inline-block w-fit min-w-24 cursor-pointer rounded-md px-4 py-2 text-center text-white shadow-md transition-all focus:outline-none active:translate-y-1;
+	}
+}
