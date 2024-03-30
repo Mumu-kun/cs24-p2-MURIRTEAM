@@ -6,4 +6,16 @@
     .btn {
 		@apply inline-block w-fit min-w-24 cursor-pointer rounded-md px-4 py-2 text-center text-white shadow-md transition-all focus:outline-none active:translate-y-1;
 	}
+
+	.btn--prim {
+		@apply btn bg-blue-500 hover:bg-blue-600 active:bg-blue-600;
+	}
+
+	.btn--sec {
+		@apply btn bg-white text-blue-500 hover:bg-blue-500 hover:text-white active:bg-blue-500;
+	}
+
+	.input {
+		@apply min-w-0 rounded bg-white px-4 py-2 text-black shadow;
+	}
 }

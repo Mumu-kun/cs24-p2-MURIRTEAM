@@ -133,7 +133,7 @@ app.delete("/users/:id", async (req, res) => {
 	}
 });
 
-app.get("users/roles", async (req, res) => {
+app.get("/users/roles", async (req, res) => {
 	const db = await dbPromise;
 	try {
 		const q = await db.all(`SELECT * FROM role`);
@@ -144,7 +144,7 @@ app.get("users/roles", async (req, res) => {
 	}
 });
 
-app.post("rbac/roles", async (req, res) => {
+app.post("/rbac/roles", async (req, res) => {
 	const db = await dbPromise;
 	try {
 		const { id, name } = req.body;
@@ -396,52 +396,59 @@ app.post("rbac/permissions", async (req, res) => {
 });
 
 // Create route from STS to landfill
-app.post('/create/route', async(req, res)=>{
+app.post("/create/route", async (req, res) => {
 	const db = await dbPromise;
 	try {
-
 		const { sts_id, landfill_id, time, distance } = req.body;
 
-		let q = await db.run(`INSERT INTO route (sts_id, landfill_id, time, distance) VALUES (?, ?, ?, ?)`, [sts_id, landfill_id, time, distance]);
+		let q = await db.run(`INSERT INTO route (sts_id, landfill_id, time, distance) VALUES (?, ?, ?, ?)`, [
+			sts_id,
+			landfill_id,
+			time,
+			distance,
+		]);
 		res.send(q);
-
 	} catch (error) {
-		console.error('error executing query: ', error);
-		res.status(500).json({ error: 'Internal Server Error' });
+		console.error("error executing query: ", error);
+		res.status(500).json({ error: "Internal Server Error" });
 	}
-})
+});
 
 // Generate fleet
-app.get('/generate/fleet', async(req, res)=>{
+app.get("/generate/fleet", async (req, res) => {
 	const db = await dbPromise;
 	try {
+		const { sts_id, landfill_id, total_weight } = req.query;
 
-		const {sts_id, landfill_id, total_weight} = req.query;
-
-		const vehicles = await db.all(`
+		const vehicles = await db.all(
+			`
 			SELECT * 
 			FROM vehicle
 			WHERE sts_id = ?
 			ORDER BY fuel_cost_loaded / capacity;
-		`, [sts_id]);
+		`,
+			[sts_id]
+		);
 
-		const q = await db.get(`
+		const q = await db.get(
+			`
 			SELECT distance FROM route WHERE sts_id = ? AND landfill_id = ?
-		`, [sts_id, landfill_id]);
+		`,
+			[sts_id, landfill_id]
+		);
 		const distance = q.distance;
 
 		let fleet = [];
-		for(let i = 0; i < vehicles.length; i++){
-			if(total_weight == 0){
+		for (let i = 0; i < vehicles.length; i++) {
+			if (total_weight == 0) {
 				break;
 			}
 			vehicles[i].weight = 0;
-			for(let j = 0; j < 3; j++){
-				if(total_weight - vehicles[i].capacity >= 0){
+			for (let j = 0; j < 3; j++) {
+				if (total_weight - vehicles[i].capacity >= 0) {
 					vehicles[i].weight = vehicles[i].capacity;
 					fleet.push(vehicles[i]);
-				}
-				else{
+				} else {
 					vehicles[i].weight = total_weight;
 					fleet.push(vehicles[i]);
 					total_weight = 0;
@@ -449,40 +456,42 @@ app.get('/generate/fleet', async(req, res)=>{
 				}
 			}
 		}
-		if(total_weight > 0){
+		if (total_weight > 0) {
 			fleet = [];
 		}
 
-		res.send({fleet});
-
+		res.send({ fleet });
 	} catch (error) {
-		console.error('error executing query: ', error);
-		res.status(500).json({ error: 'Internal Server Error' });
+		console.error("error executing query: ", error);
+		res.status(500).json({ error: "Internal Server Error" });
 	}
-})
+});
 
 // Generate slip for each transport from STS to landfill
-app.get('/generate/slip', async(req, res)=>{
+app.get("/generate/slip", async (req, res) => {
 	const db = await dbPromise;
 	try {
+		const { sts_id, landfill_id, vehicle_num } = req.query;
 
-		const {sts_id, landfill_id, vehicle_num} = req.query;
-
-		const q = await db.get(`
+		const q = await db.get(
+			`
 			SELECT TR.sts_id, TR.landfill_id, TR.vehicle_num, TR.weight, TR.landfill_arrival_time, TR.landfill_departure_time, R.distance, 
 				V.type, V.capacity, V.fuel_cost_loaded, V.fuel_cost_unloaded
 			FROM transport_record TR
 			JOIN route R ON R.sts_id = TR.sts_id AND R.landfill_id = TR.landfill_id
 			JOIN vehicle V ON V.reg_num = TR.vehicle_num
 			WHERE TR.sts_id = ? AND TR.landfill_id = ? AND TR.vehicle_num = ?
-		`, [sts_id, landfill_id, vehicle_num]);
+		`,
+			[sts_id, landfill_id, vehicle_num]
+		);
 
-		const cost = (q.fuel_cost_unloaded + (q.weight / q.capacity) * (q.fuel_cost_loaded - q.fuel_cost_unloaded)) * q.distance;
+		const cost =
+			(q.fuel_cost_unloaded + (q.weight / q.capacity) * (q.fuel_cost_loaded - q.fuel_cost_unloaded)) * q.distance;
 
 		res.send({
 			timestamps: {
 				arrival: q.landfill_arrival_time,
-				departure: q.landfill_departure_time
+				departure: q.landfill_departure_time,
 			},
 			weight_of_waste: q.weight,
 			truck: {
@@ -490,19 +499,18 @@ app.get('/generate/slip', async(req, res)=>{
 				type: q.type,
 				capacity: q.capacity,
 				fuel_cost_loaded: q.fuel_cost_loaded,
-				fuel_cost_unloaded: q.fuel_cost_unloaded
+				fuel_cost_unloaded: q.fuel_cost_unloaded,
 			},
 			fuel_allocation: {
-				total_distance: q.distance, 
-				total_cost: cost
-			}
+				total_distance: q.distance,
+				total_cost: cost,
+			},
 		});
-
 	} catch (error) {
-		console.error('error executing query: ', error);
-		res.status(500).json({ error: 'Internal Server Error' });
+		console.error("error executing query: ", error);
+		res.status(500).json({ error: "Internal Server Error" });
 	}
-})
+});
 
 app.listen(8000, () => {
 	console.log("Server is running at port 8000");

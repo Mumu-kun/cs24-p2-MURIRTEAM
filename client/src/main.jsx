@@ -27,6 +27,14 @@ const router = createBrowserRouter([
 				path: "/user",
 				element: LazyLoadRoutes("@/userManagementView/UserManagementView"),
 			},
+			{
+				path: "/vehicle",
+				element: LazyLoadRoutes("@/dataEntryView/AddManageVehicle"),
+			},
+			{
+				path: "/sts",
+				element: LazyLoadRoutes("@/dataEntryView/AddManageSTS"),
+			},
 		],
 	},
 ]);
