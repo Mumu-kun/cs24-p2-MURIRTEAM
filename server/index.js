@@ -30,7 +30,10 @@ app.get("/", async (req, res) => {
 		const q4 = await db.all(`SELECT * FROM role_permission`);
 		const q5 = await db.all(`SELECT * FROM vehicle`);
 		const q6 = await db.all(`SELECT * FROM sts`);
-		res.send({ q1, q2, q3, q4, q5, q6 });
+		const q7 = await db.all(`SELECT * FROM landfill`);
+		const q8 = await db.all(`SELECT * FROM route`);
+		const q9 = await db.all(`SELECT * FROM transport_record`);
+		res.send({ q1, q2, q3, q4, q5, q6, q7, q8, q9 });
 	} catch (error) {
 		console.error("error executing query: ", error);
 		res.status(500).json({ error: "Internal Server Error" });
@@ -77,7 +80,7 @@ app.get("/users/:id", async (req, res) => {
 	const db = await dbPromise;
 	try {
 		const user_id = req.params.id;
-		const q = await db.all(`SELECT * FROM user WHERE id = ?`, user_id);
+		const q = await db.all(`SELECT U.*, R.name FROM user U JOIN role R ON U.role_id = R.id WHERE U.id = ?`, user_id);
 		res.send(q);
 	} catch (error) {
 		console.error("error executing query: ", error);
@@ -180,6 +183,18 @@ app.post("/create/STS", async (req, res) => {
 	}
 });
 
+// Get all STS
+app.get("/STS", async (req, res) => {
+	const db = await dbPromise;
+	try {
+		const q = await db.all(`SELECT * FROM sts`);
+		res.send(q);
+	} catch (error) {
+		console.error("error executing query: ", error);
+		res.status(500).json({ error: "Internal Server Error" });
+	}
+});
+
 // Assign STS manager
 app.post("/assign/STS_manager", async (req, res) => {
 	const db = await dbPromise;
@@ -192,6 +207,32 @@ app.post("/assign/STS_manager", async (req, res) => {
 		`,
 			[user_id, sts_id]
 		);
+		res.send(q);
+	} catch (error) {
+		console.error("error executing query: ", error);
+		res.status(500).json({ error: "Internal Server Error" });
+	}
+});
+
+// Get all managers of a particular STS
+app.get("/managers/STS/:id", async (req, res) => {
+	const db = await dbPromise;
+	try {
+		const sts_id = req.params.id;
+		const q = await db.all(`SELECT U.* FROM sts_manager SM JOIN user U ON SM.id = U.id WHERE SM.sts_id = ?`, [sts_id]);
+		res.send(q);
+	} catch (error) {
+		console.error("error executing query: ", error);
+		res.status(500).json({ error: "Internal Server Error" });
+	}
+});
+
+// Get the STS of a particular STS_manager
+app.get("/STS/manager/:id", async (req, res) => {
+	const db = await dbPromise;
+	try {
+		const manager_id = req.params.id;
+		const q = await db.all(`SELECT S.* FROM sts S JOIN sts_manager SM ON SM.sts_id = S.id WHERE SM.id = ?`, [manager_id]);
 		res.send(q);
 	} catch (error) {
 		console.error("error executing query: ", error);
@@ -248,6 +289,19 @@ app.post("/assign/vehicle", async (req, res) => {
 	}
 });
 
+// Get all vehicles assigned to an STS
+app.get("/vehicles/STS/:id", async (req, res) => {
+	const db = await dbPromise;
+	try {
+		const sts_id = req.params.id;
+		const q = await db.all(`SELECT * FROM vehicles WHERE sts_id = ?`, [sts_id]);
+		res.send(q);
+	} catch (error) {
+		console.error("error executing query: ", error);
+		res.status(500).json({ error: "Internal Server Error" });
+	}
+});
+
 // Add entry of vehicles leaving sts
 app.post("/entry/STS", async (req, res) => {
 	const db = await dbPromise;
@@ -268,17 +322,29 @@ app.post("/entry/STS", async (req, res) => {
 });
 
 // Create Landfill
-app.post("/create/landfil", async (req, res) => {
+app.post("/create/landfill", async (req, res) => {
 	const db = await dbPromise;
 	try {
-		const { capacity, latitude, longitude, operational_span } = req.body;
+		const { capacity, latitude, longitude, operational_timespan } = req.body;
 		const q = await db.run(
 			`
-			INSERT INTO landfill (capacity, latitude, longitude, operational_span)
+			INSERT INTO landfill (capacity, latitude, longitude, operational_timespan)
 			VALUES (?, ?, ?, ?)
 		`,
-			[capacity, latitude, longitude, operational_span]
+			[capacity, latitude, longitude, operational_timespan]
 		);
+		res.send(q);
+	} catch (error) {
+		console.error("error executing query: ", error);
+		res.status(500).json({ error: "Internal Server Error" });
+	}
+});
+
+// Get all Landfills
+app.get("/landfill", async (req, res) => {
+	const db = await dbPromise;
+	try {
+		const q = await db.all(`SELECT * FROM landfill`);
 		res.send(q);
 	} catch (error) {
 		console.error("error executing query: ", error);
@@ -298,6 +364,32 @@ app.post("/assign/landfill_manager", async (req, res) => {
 		`,
 			[user_id, landfill_id]
 		);
+		res.send(q);
+	} catch (error) {
+		console.error("error executing query: ", error);
+		res.status(500).json({ error: "Internal Server Error" });
+	}
+});
+
+// Get all managers of a particular landfill
+app.get("/managers/landfill/:id", async (req, res) => {
+	const db = await dbPromise;
+	try {
+		const landfill_id = req.params.id;
+		const q = await db.all(`SELECT U.* FROM landfill_manager LM JOIN user U ON LM.id = U.id WHERE LM.landfill_id = ?`, [landfill_id]);
+		res.send(q);
+	} catch (error) {
+		console.error("error executing query: ", error);
+		res.status(500).json({ error: "Internal Server Error" });
+	}
+});
+
+// Get the landfill of a particular landfill_manager
+app.get("/landfill/manager/:id", async (req, res) => {
+	const db = await dbPromise;
+	try {
+		const manager_id = req.params.id;
+		const q = await db.all(`SELECT L.* FROM landfill L JOIN landfill_manager LM ON LM.landfill_id = L.id WHERE LM.id = ?`, [manager_id]);
 		res.send(q);
 	} catch (error) {
 		console.error("error executing query: ", error);
@@ -425,38 +517,46 @@ app.get("/generate/fleet", async (req, res) => {
 			SELECT * 
 			FROM vehicle
 			WHERE sts_id = ?
-			ORDER BY fuel_cost_loaded / capacity;
+			ORDER BY capacity / fuel_cost_loaded DESC;
 		`,
 			[sts_id]
 		);
 
-		const q = await db.get(
-			`
-			SELECT distance FROM route WHERE sts_id = ? AND landfill_id = ?
-		`,
-			[sts_id, landfill_id]
-		);
-		const distance = q.distance;
-
+		let v_total_weight = total_weight;
 		let fleet = [];
 		for (let i = 0; i < vehicles.length; i++) {
-			if (total_weight == 0) {
+			if (v_total_weight == 0) {
 				break;
 			}
 			vehicles[i].weight = 0;
 			for (let j = 0; j < 3; j++) {
-				if (total_weight - vehicles[i].capacity >= 0) {
+				if (v_total_weight - vehicles[i].capacity >= 0) {
 					vehicles[i].weight = vehicles[i].capacity;
-					fleet.push(vehicles[i]);
+					fleet.push({
+						reg_num: vehicles[i].reg_num,
+						type: vehicles[i].type,
+						capacity: vehicles[i].capacity,
+						fuel_cost_loaded: vehicles[i].fuel_cost_loaded,
+						fuel_cost_unloaded: vehicles[i].fuel_cost_unloaded,
+						weight: vehicles[i].capacity
+					});
+					v_total_weight -= vehicles[i].capacity;
 				} else {
-					vehicles[i].weight = total_weight;
-					fleet.push(vehicles[i]);
-					total_weight = 0;
+					vehicles[i].weight = v_total_weight;
+					fleet.push({
+						reg_num: vehicles[i].reg_num,
+						type: vehicles[i].type,
+						capacity: vehicles[i].capacity,
+						fuel_cost_loaded: vehicles[i].fuel_cost_loaded,
+						fuel_cost_unloaded: vehicles[i].fuel_cost_unloaded,
+						weight: v_total_weight
+					});
+					v_total_weight = 0;
 					break;
 				}
 			}
 		}
-		if (total_weight > 0) {
+		if (v_total_weight > 0) {
 			fleet = [];
 		}
 
