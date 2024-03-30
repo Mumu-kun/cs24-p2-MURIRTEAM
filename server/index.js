@@ -161,53 +161,6 @@ app.post("rbac/roles", async (req, res) => {
 	}
 });
 
-app.delete('/users/:id', async (req, res) => {
-
-	const db = await dbPromise;
-	try {
-
-		const user_id = req.params.id;
-		const q = await db.run(`DELETE FROM user WHERE id = ?`, user_id);
-		res.send(q);
-
-	} catch (error) {
-		console.error('error executing query: ', error);
-		res.status(500).json({ error: 'Internal Server Error' });
-	}
-
-});
-
-app.get('users/roles', async (req, res) => {
-	const db = await dbPromise;
-	try {
-
-		const q = await db.all(`SELECT * FROM role`);
-		res.send(q);
-	} catch (error) {
-		console.error('error executing query: ', error);
-		res.status(500).json({ error: 'Internal Server Error' });
-	}
-})
-
-app.post('rbac/roles', async (req, res) => {
-	const db = await dbPromise;
-	try {
-
-		const { id, name } = req.body;
-		const q = await db.all(`SELECT * FROM role where id = ?`, [id]);
-		if (q.length > 0) {
-			const r = await db.run(`UPDATE role SET name = ? WHERE id = ?`, [name, id]);
-		}
-		else {
-			const r = await db.run(`INSERT INTO role (name) VALUES (?)`, [name]);
-		}
-		res.send(r);
-	} catch (error) {
-		console.error('error executing query: ', error);
-		res.status(500).json({ error: 'Internal Server Error' });
-	}
-})
-
 // Create STS
 app.post("/create/STS", async (req, res) => {
 	const db = await dbPromise;
@@ -441,6 +394,115 @@ app.post("rbac/permissions", async (req, res) => {
 		res.status(500).json({ error: "Internal Server Error" });
 	}
 });
+
+// Create route from STS to landfill
+app.post('/create/route', async(req, res)=>{
+	const db = await dbPromise;
+	try {
+
+		const { sts_id, landfill_id, time, distance } = req.body;
+
+		let q = await db.run(`INSERT INTO route (sts_id, landfill_id, time, distance) VALUES (?, ?, ?, ?)`, [sts_id, landfill_id, time, distance]);
+		res.send(q);
+
+	} catch (error) {
+		console.error('error executing query: ', error);
+		res.status(500).json({ error: 'Internal Server Error' });
+	}
+})
+
+// Generate fleet
+app.get('/generate/fleet', async(req, res)=>{
+	const db = await dbPromise;
+	try {
+
+		const {sts_id, landfill_id, total_weight} = req.query;
+
+		const vehicles = await db.all(`
+			SELECT * 
+			FROM vehicle
+			WHERE sts_id = ?
+			ORDER BY fuel_cost_loaded / capacity;
+		`, [sts_id]);
+
+		const q = await db.get(`
+			SELECT distance FROM route WHERE sts_id = ? AND landfill_id = ?
+		`, [sts_id, landfill_id]);
+		const distance = q.distance;
+
+		let fleet = [];
+		for(let i = 0; i < vehicles.length; i++){
+			if(total_weight == 0){
+				break;
+			}
+			vehicles[i].weight = 0;
+			for(let j = 0; j < 3; j++){
+				if(total_weight - vehicles[i].capacity >= 0){
+					vehicles[i].weight = vehicles[i].capacity;
+					fleet.push(vehicles[i]);
+				}
+				else{
+					vehicles[i].weight = total_weight;
+					fleet.push(vehicles[i]);
+					total_weight = 0;
+					break;
+				}
+			}
+		}
+		if(total_weight > 0){
+			fleet = [];
+		}
+
+		res.send({fleet});
+
+	} catch (error) {
+		console.error('error executing query: ', error);
+		res.status(500).json({ error: 'Internal Server Error' });
+	}
+})
+
+// Generate slip for each transport from STS to landfill
+app.get('/generate/slip', async(req, res)=>{
+	const db = await dbPromise;
+	try {
+
+		const {sts_id, landfill_id, vehicle_num} = req.query;
+
+		const q = await db.get(`
+			SELECT TR.sts_id, TR.landfill_id, TR.vehicle_num, TR.weight, TR.landfill_arrival_time, TR.landfill_departure_time, R.distance, 
+				V.type, V.capacity, V.fuel_cost_loaded, V.fuel_cost_unloaded
+			FROM transport_record TR
+			JOIN route R ON R.sts_id = TR.sts_id AND R.landfill_id = TR.landfill_id
+			JOIN vehicle V ON V.reg_num = TR.vehicle_num
+			WHERE TR.sts_id = ? AND TR.landfill_id = ? AND TR.vehicle_num = ?
+		`, [sts_id, landfill_id, vehicle_num]);
+
+		const cost = (q.fuel_cost_unloaded + (q.weight / q.capacity) * (q.fuel_cost_loaded - q.fuel_cost_unloaded)) * q.distance;
+
+		res.send({
+			timestamps: {
+				arrival: q.landfill_arrival_time,
+				departure: q.landfill_departure_time
+			},
+			weight_of_waste: q.weight,
+			truck: {
+				reg_num: q.vehicle_num,
+				type: q.type,
+				capacity: q.capacity,
+				fuel_cost_loaded: q.fuel_cost_loaded,
+				fuel_cost_unloaded: q.fuel_cost_unloaded
+			},
+			fuel_allocation: {
+				total_distance: q.distance, 
+				total_cost: cost
+			}
+		});
+
+	} catch (error) {
+		console.error('error executing query: ', error);
+		res.status(500).json({ error: 'Internal Server Error' });
+	}
+})
 
 app.listen(8000, () => {
 	console.log("Server is running at port 8000");
