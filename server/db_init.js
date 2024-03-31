@@ -1,7 +1,7 @@
-import sqlite3 from "sqlite3";
 import { open } from "sqlite";
+import sqlite3 from "sqlite3";
 
-const dbPromise = (async () => {
+(async () => {
 	const db = await open({
 		filename: "./database.db",
 		driver: sqlite3.Database,
@@ -170,7 +170,7 @@ const dbPromise = (async () => {
 		INSERT INTO permission (description) VALUES ('See assigned roles');
 	`);
 
-	for(let i = 1; i <= 15; i++){
+	for (let i = 1; i <= 15; i++) {
 		await db.run(`INSERT INTO role_permission (role_id, permission_id) VALUES (2, ?)`, [i]);
 	}
 	await db.exec(`INSERT INTO role_permission (role_id, permission_id) VALUES (3, 16)`);
@@ -178,13 +178,11 @@ const dbPromise = (async () => {
 	await db.exec(`INSERT INTO role_permission (role_id, permission_id) VALUES (3, 18)`);
 	await db.exec(`INSERT INTO role_permission (role_id, permission_id) VALUES (4, 19)`);
 	await db.exec(`INSERT INTO role_permission (role_id, permission_id) VALUES (4, 20)`);
-	for(let i = 21; i <= 24; i++){
-		for(let j = 1; j <= 4; j++){
+	for (let i = 21; i <= 24; i++) {
+		for (let j = 1; j <= 4; j++) {
 			await db.run(`INSERT INTO role_permission (role_id, permission_id) VALUES (?, ?)`, [j, i]);
 		}
 	}
 
-	return db;
+	db.close();
 })();
-
-export default dbPromise;

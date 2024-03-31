@@ -1,8 +1,9 @@
-import express from "express";
-import morgan from "morgan";
-import session from "express-session";
 import cors from "cors";
-import dbPromise from "./db_init.js";
+import express from "express";
+import session from "express-session";
+import morgan from "morgan";
+import { open } from "sqlite";
+import sqlite3 from "sqlite3";
 
 const app = express();
 
@@ -10,6 +11,15 @@ app.use(cors());
 app.use(morgan("dev"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+const dbPromise = (async () => {
+	const db = await open({
+		filename: "./database.db",
+		driver: sqlite3.Database,
+	});
+
+	return db;
+})();
 
 // Create a session for user
 const userSession = session({

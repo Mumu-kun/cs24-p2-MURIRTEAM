@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "start": "node index.js",
+    "init": "node db_init.js",
     "dev": "nodemon index.js"
   },
   "keywords": [],
