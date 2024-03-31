@@ -594,13 +594,32 @@ app.get("/rbac/roles", async (req, res) => {
 	}
 });
 
+app.get("/rbac/roles/:roleId/permissions", async (req, res) => {
+	const db = await dbPromise;
+	try {
+		const { roleId } = req.params;
+		const q = await db.all(
+			`SELECT RP.role_id, P.id as permission_id, P.description FROM role_permission RP right JOIN permission P ON RP.permission_id = P.id where RP.role_id = ?`,
+			[roleId]
+		);
+		res.send(q);
+	} catch (error) {
+		console.error("error executing query: ", error);
+		res.status(500).json({ error: "Internal Server Error" });
+	}
+});
+
 // Add a permission to a role
 app.post("/rbac/roles/:roleId/permissions", async (req, res) => {
 	const db = await dbPromise;
 	try {
-		const {permission_id} = req.body;
-		const {roleId} = req.params;
-		const q = await db.run(`INSERT INTO role_permission (role_id, permission_id) VALUES (?, ?)`, [roleId, permission_id]);
+		const { permission_id } = req.body;
+		const { roleId } = req.params;
+		console.log(req.body);
+		const q = await db.run(`INSERT INTO role_permission (role_id, permission_id) VALUES (?, ?)`, [
+			roleId,
+			permission_id,
+		]);
 		res.send(q);
 	} catch (error) {
 		console.error("error executing query: ", error);
@@ -611,9 +630,7 @@ app.post("/rbac/roles/:roleId/permissions", async (req, res) => {
 app.get("/rbac/permissions", async (req, res) => {
 	const db = await dbPromise;
 	try {
-		const q = await db.all(
-			`SELECT RP.role_id, RP.permission_id, P.description FROM role_permission RP JOIN permission P ON RP.permission_id = P.id`
-		);
+		const q = await db.all(`SELECT P.id as permission_id, P.description FROM permission P`);
 		res.send(q);
 	} catch (error) {
 		console.error("error executing query: ", error);
@@ -622,7 +639,7 @@ app.get("/rbac/permissions", async (req, res) => {
 });
 
 // FIX INSERTING INTO ROLE_PERMISSION TABLE
-app.post("rbac/permissions", async (req, res) => {
+app.post("/rbac/permissions", async (req, res) => {
 	const db = await dbPromise;
 	try {
 		const { role_id, permission_id, description } = req.body;
@@ -758,11 +775,14 @@ app.get("/get/fleet", async (req, res) => {
 		const dt = await db.get(`SELECT CURRENT_DATE AS cd FROM landfill`);
 		console.log(dt.cd);
 
-		const q2 = await db.all(`
+		const q2 = await db.all(
+			`
 			SELECT V.*, TR.trip_count, TR.weight
 			FROM transport_record TR JOIN vehicle V ON TR.vehicle_num = V.reg_num
 			WHERE TR.sts_id = ? AND TR.landfill_id = ? AND TR.generation_date = CURRENT_DATE
-		`, [sts_id, landfill_id]);
+		`,
+			[sts_id, landfill_id]
+		);
 		console.log(q2);
 		res.send(q2);
 	} catch (error) {
