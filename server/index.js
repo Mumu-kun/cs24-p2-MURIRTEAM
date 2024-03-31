@@ -104,7 +104,10 @@ app.post("/change/password", async (req, res) => {
 	try {
 		const { user_id, password } = req.body;
 		const q = db.run(`UPDATE user SET password = ? WHERE id = ?`, [password, user_id]);
-		res.send(q);
+		res.send({
+			"success": true,
+			"message": "Password change successful"
+		});
 	} catch (error) {
 		console.error("error executing query: ", error);
 		res.status(500).json({ error: "Internal Server Error" });
@@ -122,7 +125,10 @@ app.post("/users", async (req, res) => {
 		`,
 			[username, email, password]
 		);
-		res.send(q);
+		res.send({
+			"success": true,
+			"message": "Registration successful"
+		});
 	} catch (error) {
 		console.error("error executing query: ", error);
 		res.status(500).json({ error: "Internal Server Error" });
@@ -147,6 +153,7 @@ app.post("/users/:userID/roles", async (req, res) => {
 	}
 });
 
+// Delete a specific user
 app.delete("/users/:id", async (req, res) => {
 	const db = await dbPromise;
 	try {
@@ -159,6 +166,7 @@ app.delete("/users/:id", async (req, res) => {
 	}
 });
 
+// Get all roles
 app.get("/users/roles", async (req, res) => {
 	const db = await dbPromise;
 	try {
@@ -170,6 +178,7 @@ app.get("/users/roles", async (req, res) => {
 	}
 });
 
+// For defining and managing roles
 app.post("/rbac/roles", async (req, res) => {
 	const db = await dbPromise;
 	try {
@@ -355,15 +364,15 @@ app.get("/vehicles/STS/:id", async (req, res) => {
 app.post("/entry/STS", async (req, res) => {
 	const db = await dbPromise;
 	try {
-		const { sts_id, vehicle_num, trip_count, generation_date, sts_arrival_time, sts_departure_time } = req.body;
+		const { sts_id, vehicle_num, trip_count, sts_arrival_time, sts_departure_time } = req.body;
 		const q2 = await db.get(`SELECT landfill_id FROM sts WHERE id = ?`, [sts_id]);
 		const landfill_id = q2.landfill_id;
 		const q = await db.run(
 			`
 			UPDATE transport_record SET sts_arrival_time = ? , sts_departure_time = ?
-			WHERE sts_id = ? AND landfill_id = ? AND vehicle_num = ? AND trip_count = ? AND generation_date = ?
+			WHERE sts_id = ? AND landfill_id = ? AND vehicle_num = ? AND trip_count = ? AND generation_date = CURRENT_DATE
 		`,
-			[sts_arrival_time, sts_departure_time, sts_id, landfill_id, vehicle_num, trip_count, generation_date]
+			[sts_arrival_time, sts_departure_time, sts_id, landfill_id, vehicle_num, trip_count]
 		);
 		res.send(q);
 	} catch (error) {
@@ -373,11 +382,13 @@ app.post("/entry/STS", async (req, res) => {
 });
 
 // Get all entries for all vehicles from an STS to a landfill
-app.get("/entry/all", async (req, res) => {
+app.get("/entry/all/sts", async (req, res) => {
 	const db = await dbPromise;
 	try {
-		const { sts_id, landfill_id } = req.query;
-		const q = await db.all(`SELECT * FROM transport_record WHERE sts_id = ? AND landfill_id = ? `, [
+		const { sts_id} = req.query;
+		const q2 = await db.run(`SELECT landfill_id FROM sts WHERE id = ?`, [sts_id]);
+		const landfill_id = q2.landfill_id;
+		const q = await db.all(`SELECT * FROM transport_record WHERE sts_id = ? AND landfill_id = ? AND sts_departure_time IS NOT NULL`, [
 			sts_id,
 			landfill_id,
 		]);
@@ -497,17 +508,32 @@ app.get("/landfill/manager/:id", async (req, res) => {
 app.post("/entry/landfill", async (req, res) => {
 	const db = await dbPromise;
 	try {
-		const { sts_id, vehicle_num, trip_count, generation_date, landfill_arrival_time, landfill_departure_time } =
+		const { sts_id, vehicle_num, trip_count, landfill_arrival_time, landfill_departure_time } =
 			req.body;
 		const q2 = await db.get(`SELECT landfill_id FROM sts WHERE id = ?`, [sts_id]);
 		const landfill_id = q2.landfill_id;
 		const q = await db.run(
 			`
 			UPDATE transport_record SET landfill_arrival_time = ? , landfill_departure_time = ?
-			WHERE sts_id = ? AND landfill_id = ? AND vehicle_num = ? AND trip_count = ? AND generation_date = ?
+			WHERE sts_id = ? AND landfill_id = ? AND vehicle_num = ? AND trip_count = ? AND generation_date = CURRENT_DATE
 		`,
-			[landfill_arrival_time, landfill_departure_time, sts_id, landfill_id, vehicle_num, trip_count, generation_date]
+			[landfill_arrival_time, landfill_departure_time, sts_id, landfill_id, vehicle_num, trip_count]
 		);
+		res.send(q);
+	} catch (error) {
+		console.error("error executing query: ", error);
+		res.status(500).json({ error: "Internal Server Error" });
+	}
+});
+
+// Get all vehicles currently in landfill
+app.get("/entry/all/landfill", async (req, res) => {
+	const db = await dbPromise;
+	try {
+		const { landfill_id } = req.query;
+		const q = await db.all(`SELECT * FROM transport_record WHERE landfill_id = ? AND sts_departure_time IS NOT NULL AND landfill_departure_time IS NULL`, [
+			landfill_id,
+		]);
 		res.send(q);
 	} catch (error) {
 		console.error("error executing query: ", error);
@@ -532,7 +558,10 @@ app.post("/auth/login", async (req, res) => {
 			console.log(q);
 			req.session.user = q[0]; //storing user details in session
 			console.log(req.session.user);
-			res.send(q);
+			res.send({
+				"success": true,
+				"message": "Login successful"
+			});
 		}
 	} catch (error) {
 		console.error("error executing query: ", error);
@@ -586,11 +615,31 @@ app.post("rbac/permissions", async (req, res) => {
 	}
 });
 
+// Get route from STS to landfill
+app.get("/route/STS", async(req, res)=>{
+	const db = await dbPromise;
+	try {
+		const {sts_id} = req.query;
+		const q = await db.all(
+			`SELECT * FROM route WHERE sts_id = ?`, [sts_id]
+		);
+		const landfill_id = q.landfill_id;
+		const q2 = await db.get(`SELECT * FROM route WHERE sts_id = ? AND landfill_id = ?`, [sts_id, landfill_id]);
+		res.send(q2);
+	} catch (error) {
+		console.error("error executing query: ", error);
+		res.status(500).json({ error: "Internal Server Error" });
+	}
+})
+
 // Create route from STS to landfill
 app.post("/create/route", async (req, res) => {
 	const db = await dbPromise;
 	try {
-		const { sts_id, landfill_id, time, distance } = req.body;
+		const { sts_id, time, distance } = req.body;
+
+		const q2 = await db.get(`SELECT landfill_id FROM sts WHERE id = ?`, [sts_id]);
+		const landfill_id = q2.landfill_id;
 
 		let q = await db.run(`INSERT INTO route (sts_id, landfill_id, time, distance) VALUES (?, ?, ?, ?)`, [
 			sts_id,
@@ -598,7 +647,7 @@ app.post("/create/route", async (req, res) => {
 			time,
 			distance,
 		]);
-		res.send(q);
+		res.send({"success": true, "message": "Route created"});
 	} catch (error) {
 		console.error("error executing query: ", error);
 		res.status(500).json({ error: "Internal Server Error" });
@@ -681,7 +730,10 @@ app.get("/generate/fleet", async (req, res) => {
 app.get("/generate/slip", async (req, res) => {
 	const db = await dbPromise;
 	try {
-		const { sts_id, landfill_id, vehicle_num } = req.query;
+		const { sts_id, vehicle_num, trip_count } = req.query;
+
+		const q2 = await db.get(`SELECT landfill_id FROM sts WHERE id = ?`, [sts_id]);
+		const landfill_id = q2.landfill_id;
 
 		const q = await db.get(
 			`
@@ -690,9 +742,9 @@ app.get("/generate/slip", async (req, res) => {
 			FROM transport_record TR
 			JOIN route R ON R.sts_id = TR.sts_id AND R.landfill_id = TR.landfill_id
 			JOIN vehicle V ON V.reg_num = TR.vehicle_num
-			WHERE TR.sts_id = ? AND TR.landfill_id = ? AND TR.vehicle_num = ?
+			WHERE TR.sts_id = ? AND TR.landfill_id = ? AND TR.vehicle_num = ? AND TR.trip_count = ? AND TR.generation_date = CURRENT_DATE
 		`,
-			[sts_id, landfill_id, vehicle_num]
+			[sts_id, landfill_id, vehicle_num, trip_count]
 		);
 
 		const cost =
