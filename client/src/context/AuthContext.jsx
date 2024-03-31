@@ -35,17 +35,14 @@ export const AuthContext = createContext();
 
 // Create the authentication provider component
 export const AuthProvider = ({ children }) => {
-	const [authState, dispatch] = useReducer(
-		reducer,
-		window.localStorage.getItem("user")
-			? {
-					isAuthenticated: true,
-					user: JSON.parse(window.localStorage.getItem("user")),
-				}
-			: initialState
-	);
+	const localUser =
+		!!window.localStorage.getItem("user") && window.localStorage.getItem("user") !== "undefined"
+			? { isAuthenticated: true, user: JSON.parse(window.localStorage.getItem("user")) }
+			: null;
+	const [authState, dispatch] = useReducer(reducer, localUser);
 
 	const login = (user) => {
+		if (!user) return console.error("User is required to login.");
 		dispatch({ type: "LOGIN", payload: user });
 	};
 

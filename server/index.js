@@ -105,8 +105,8 @@ app.post("/change/password", async (req, res) => {
 		const { user_id, password } = req.body;
 		const q = db.run(`UPDATE user SET password = ? WHERE id = ?`, [password, user_id]);
 		res.send({
-			"success": true,
-			"message": "Password change successful"
+			success: true,
+			message: "Password change successful",
 		});
 	} catch (error) {
 		console.error("error executing query: ", error);
@@ -126,8 +126,8 @@ app.post("/users", async (req, res) => {
 			[username, email, password]
 		);
 		res.send({
-			"success": true,
-			"message": "Registration successful"
+			success: true,
+			message: "Registration successful",
 		});
 	} catch (error) {
 		console.error("error executing query: ", error);
@@ -385,13 +385,13 @@ app.post("/entry/STS", async (req, res) => {
 app.get("/entry/all/sts", async (req, res) => {
 	const db = await dbPromise;
 	try {
-		const { sts_id} = req.query;
+		const { sts_id } = req.query;
 		const q2 = await db.run(`SELECT landfill_id FROM sts WHERE id = ?`, [sts_id]);
 		const landfill_id = q2.landfill_id;
-		const q = await db.all(`SELECT * FROM transport_record WHERE sts_id = ? AND landfill_id = ? AND sts_departure_time IS NOT NULL`, [
-			sts_id,
-			landfill_id,
-		]);
+		const q = await db.all(
+			`SELECT * FROM transport_record WHERE sts_id = ? AND landfill_id = ? AND sts_departure_time IS NOT NULL`,
+			[sts_id, landfill_id]
+		);
 		res.send(q);
 	} catch (error) {
 		console.error("error executing query: ", error);
@@ -508,8 +508,7 @@ app.get("/landfill/manager/:id", async (req, res) => {
 app.post("/entry/landfill", async (req, res) => {
 	const db = await dbPromise;
 	try {
-		const { sts_id, vehicle_num, trip_count, landfill_arrival_time, landfill_departure_time } =
-			req.body;
+		const { sts_id, vehicle_num, trip_count, landfill_arrival_time, landfill_departure_time } = req.body;
 		const q2 = await db.get(`SELECT landfill_id FROM sts WHERE id = ?`, [sts_id]);
 		const landfill_id = q2.landfill_id;
 		const q = await db.run(
@@ -531,9 +530,10 @@ app.get("/entry/all/landfill", async (req, res) => {
 	const db = await dbPromise;
 	try {
 		const { landfill_id } = req.query;
-		const q = await db.all(`SELECT * FROM transport_record WHERE landfill_id = ? AND sts_departure_time IS NOT NULL AND landfill_departure_time IS NULL`, [
-			landfill_id,
-		]);
+		const q = await db.all(
+			`SELECT * FROM transport_record WHERE landfill_id = ? AND sts_departure_time IS NOT NULL AND landfill_departure_time IS NULL`,
+			[landfill_id]
+		);
 		res.send(q);
 	} catch (error) {
 		console.error("error executing query: ", error);
@@ -553,15 +553,12 @@ app.post("/auth/login", async (req, res) => {
 			[email, password]
 		);
 		if (q.length > 0 && q[0].role_id == 1) {
-			res.send({ message: "No login available for unassigned role" });
+			res.status(500).send({ message: "No login available for unassigned role" });
 		} else {
 			console.log(q);
 			req.session.user = q[0]; //storing user details in session
 			console.log(req.session.user);
-			res.send({
-				"success": true,
-				"message": "Login successful"
-			});
+			res.send(q[0]);
 		}
 	} catch (error) {
 		console.error("error executing query: ", error);
@@ -616,13 +613,11 @@ app.post("rbac/permissions", async (req, res) => {
 });
 
 // Get route from STS to landfill
-app.get("/route/STS", async(req, res)=>{
+app.get("/route/STS", async (req, res) => {
 	const db = await dbPromise;
 	try {
-		const {sts_id} = req.query;
-		const q = await db.all(
-			`SELECT * FROM route WHERE sts_id = ?`, [sts_id]
-		);
+		const { sts_id } = req.query;
+		const q = await db.all(`SELECT * FROM route WHERE sts_id = ?`, [sts_id]);
 		const landfill_id = q.landfill_id;
 		const q2 = await db.get(`SELECT * FROM route WHERE sts_id = ? AND landfill_id = ?`, [sts_id, landfill_id]);
 		res.send(q2);
@@ -630,7 +625,7 @@ app.get("/route/STS", async(req, res)=>{
 		console.error("error executing query: ", error);
 		res.status(500).json({ error: "Internal Server Error" });
 	}
-})
+});
 
 // Create route from STS to landfill
 app.post("/create/route", async (req, res) => {
@@ -647,7 +642,7 @@ app.post("/create/route", async (req, res) => {
 			time,
 			distance,
 		]);
-		res.send({"success": true, "message": "Route created"});
+		res.send({ success: true, message: "Route created" });
 	} catch (error) {
 		console.error("error executing query: ", error);
 		res.status(500).json({ error: "Internal Server Error" });
