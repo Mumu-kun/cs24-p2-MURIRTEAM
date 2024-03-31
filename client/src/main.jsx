@@ -20,6 +20,10 @@ const router = createBrowserRouter([
 				element: LazyLoadRoutes("@/authView/Login"),
 			},
 			{
+				path: "/profile",
+				element: LazyLoadRoutes("@/profile/Profile"),
+			},
+			{
 				path: "/role",
 				element: LazyLoadRoutes("@/roleView/RoleView"),
 			},
@@ -32,8 +36,16 @@ const router = createBrowserRouter([
 				element: LazyLoadRoutes("@/dataEntryView/AddManageVehicle"),
 			},
 			{
-				path: "/sts",
+				path: "/manage-sts",
 				element: LazyLoadRoutes("@/dataEntryView/AddManageSTS"),
+			},
+			{
+				path: "/manage-landfill",
+				element: LazyLoadRoutes("@/dataEntryView/AddManageLandfill"),
+			},
+			{
+				path: "/sts",
+				element: LazyLoadRoutes("@/dataEntryView/AddSTSVehicleEntry"),
 			},
 		],
 	},

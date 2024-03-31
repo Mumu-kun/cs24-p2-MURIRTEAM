@@ -91,6 +91,19 @@ app.get("/users/:id", async (req, res) => {
 	try {
 		const user_id = req.params.id;
 		const q = await db.all(`SELECT U.*, R.name FROM user U JOIN role R ON U.role_id = R.id WHERE U.id = ?`, user_id);
+		res.send(q[0]);
+	} catch (error) {
+		console.error("error executing query: ", error);
+		res.status(500).json({ error: "Internal Server Error" });
+	}
+});
+
+// Change password
+app.post("/change/password", async (req, res) => {
+	const db = await dbPromise;
+	try {
+		const { user_id, password } = req.body;
+		const q = db.run(`UPDATE user SET password = ? WHERE id = ?`, [password, user_id]);
 		res.send(q);
 	} catch (error) {
 		console.error("error executing query: ", error);
@@ -178,13 +191,13 @@ app.post("/rbac/roles", async (req, res) => {
 app.post("/create/STS", async (req, res) => {
 	const db = await dbPromise;
 	try {
-		const { ward_number, capacity, latitude, longitude } = req.body;
+		const { ward_number, capacity, latitude, longitude, landfill_id } = req.body;
 		const q = await db.run(
 			`
-			INSERT INTO sts (ward_number, capacity, latitude, longitude)
-			VALUES (?, ?, ?, ?)
+			INSERT INTO sts (ward_number, capacity, latitude, longitude, landfill_id)
+			VALUES (?, ?, ?, ?, ?)
 		`,
-			[ward_number, capacity, latitude, longitude]
+			[ward_number, capacity, latitude, longitude, landfill_id]
 		);
 		res.send(q);
 	} catch (error) {
@@ -212,11 +225,35 @@ app.post("/assign/STS_manager", async (req, res) => {
 		const { user_id, sts_id } = req.body;
 		const q = await db.run(
 			`
-			INSERT INTO sts_manager (user_id, sts_id)
+			INSERT INTO sts_manager (id, sts_id)
 			VALUES (?, ?)
 		`,
 			[user_id, sts_id]
 		);
+		res.send(q);
+	} catch (error) {
+		console.error("error executing query: ", error);
+		res.status(500).json({ error: "Internal Server Error" });
+	}
+});
+
+// Get all managers not assigned to any STS
+app.get("/managers/STS/unassigned", async (req, res) => {
+	const db = await dbPromise;
+	try {
+		const q = await db.all(`
+		SELECT * 
+		FROM user U
+		WHERE U.id IN (
+			SELECT id 
+			FROM user 
+			WHERE role_id = 3
+		) AND U.id NOT IN (
+			SELECT id 
+			FROM sts_manager
+		);
+
+		`);
 		res.send(q);
 	} catch (error) {
 		console.error("error executing query: ", error);
@@ -242,7 +279,9 @@ app.get("/STS/manager/:id", async (req, res) => {
 	const db = await dbPromise;
 	try {
 		const manager_id = req.params.id;
-		const q = await db.all(`SELECT S.* FROM sts S JOIN sts_manager SM ON SM.sts_id = S.id WHERE SM.id = ?`, [manager_id]);
+		const q = await db.all(`SELECT S.* FROM sts S JOIN sts_manager SM ON SM.sts_id = S.id WHERE SM.id = ?`, [
+			manager_id,
+		]);
 		res.send(q);
 	} catch (error) {
 		console.error("error executing query: ", error);
@@ -316,14 +355,32 @@ app.get("/vehicles/STS/:id", async (req, res) => {
 app.post("/entry/STS", async (req, res) => {
 	const db = await dbPromise;
 	try {
-		const { sts_id, landfill_id, vehicle_num, weight, sts_arrival_time, sts_departure_time } = req.body;
+		const { sts_id, vehicle_num, trip_count, generation_date, sts_arrival_time, sts_departure_time } = req.body;
+		const q2 = await db.get(`SELECT landfill_id FROM sts WHERE id = ?`, [sts_id]);
+		const landfill_id = q2.landfill_id;
 		const q = await db.run(
 			`
-			INSERT INTO transport_record (sts_id, landfill_id, vehicle_num, weight, sts_arrival_time, sts_departure_time)
-			VALUES (?, ?, ?, ?, ?, ?)
+			UPDATE transport_record SET sts_arrival_time = ? , sts_departure_time = ?
+			WHERE sts_id = ? AND landfill_id = ? AND vehicle_num = ? AND trip_count = ? AND generation_date = ?
 		`,
-			[sts_id, landfill_id, vehicle_num, weight, sts_arrival_time, sts_departure_time]
+			[sts_arrival_time, sts_departure_time, sts_id, landfill_id, vehicle_num, trip_count, generation_date]
 		);
+		res.send(q);
+	} catch (error) {
+		console.error("error executing query: ", error);
+		res.status(500).json({ error: "Internal Server Error" });
+	}
+});
+
+// Get all entries for all vehicles from an STS to a landfill
+app.get("/entry/all", async (req, res) => {
+	const db = await dbPromise;
+	try {
+		const { sts_id, landfill_id } = req.query;
+		const q = await db.all(`SELECT * FROM transport_record WHERE sts_id = ? AND landfill_id = ? `, [
+			sts_id,
+			landfill_id,
+		]);
 		res.send(q);
 	} catch (error) {
 		console.error("error executing query: ", error);
@@ -369,11 +426,35 @@ app.post("/assign/landfill_manager", async (req, res) => {
 		const { user_id, landfill_id } = req.body;
 		const q = await db.run(
 			`
-			INSERT INTO landfill (user_id, landfill_id)
+			INSERT INTO landfill_manager (id, landfill_id)
 			VALUES (?, ?)
 		`,
 			[user_id, landfill_id]
 		);
+		res.send(q);
+	} catch (error) {
+		console.error("error executing query: ", error);
+		res.status(500).json({ error: "Internal Server Error" });
+	}
+});
+
+// Get all managers not assigned to any landfill
+app.get("/managers/landfill/unassigned", async (req, res) => {
+	const db = await dbPromise;
+	try {
+		const q = await db.all(`
+		SELECT * 
+		FROM user U
+		WHERE U.id IN (
+			SELECT id 
+			FROM user 
+			WHERE role_id = 4
+		) AND U.id NOT IN (
+			SELECT id 
+			FROM landfill_manager
+		);
+
+		`);
 		res.send(q);
 	} catch (error) {
 		console.error("error executing query: ", error);
@@ -386,7 +467,9 @@ app.get("/managers/landfill/:id", async (req, res) => {
 	const db = await dbPromise;
 	try {
 		const landfill_id = req.params.id;
-		const q = await db.all(`SELECT U.* FROM landfill_manager LM JOIN user U ON LM.id = U.id WHERE LM.landfill_id = ?`, [landfill_id]);
+		const q = await db.all(`SELECT U.* FROM landfill_manager LM JOIN user U ON LM.id = U.id WHERE LM.landfill_id = ?`, [
+			landfill_id,
+		]);
 		res.send(q);
 	} catch (error) {
 		console.error("error executing query: ", error);
@@ -399,7 +482,10 @@ app.get("/landfill/manager/:id", async (req, res) => {
 	const db = await dbPromise;
 	try {
 		const manager_id = req.params.id;
-		const q = await db.all(`SELECT L.* FROM landfill L JOIN landfill_manager LM ON LM.landfill_id = L.id WHERE LM.id = ?`, [manager_id]);
+		const q = await db.all(
+			`SELECT L.* FROM landfill L JOIN landfill_manager LM ON LM.landfill_id = L.id WHERE LM.id = ?`,
+			[manager_id]
+		);
 		res.send(q);
 	} catch (error) {
 		console.error("error executing query: ", error);
@@ -411,13 +497,16 @@ app.get("/landfill/manager/:id", async (req, res) => {
 app.post("/entry/landfill", async (req, res) => {
 	const db = await dbPromise;
 	try {
-		const { sts_id, landfill_id, vehicle_num, landfill_arrival_time, landfill_departure_time } = req.body;
+		const { sts_id, vehicle_num, trip_count, generation_date, landfill_arrival_time, landfill_departure_time } =
+			req.body;
+		const q2 = await db.get(`SELECT landfill_id FROM sts WHERE id = ?`, [sts_id]);
+		const landfill_id = q2.landfill_id;
 		const q = await db.run(
 			`
 			UPDATE transport_record SET landfill_arrival_time = ? , landfill_departure_time = ?
-			WHERE sts_id = ? AND landfill_id = ? AND vehicle_num = ?
+			WHERE sts_id = ? AND landfill_id = ? AND vehicle_num = ? AND trip_count = ? AND generation_date = ?
 		`,
-			[landfill_arrival_time, landfill_departure_time, sts_id, landfill_id, vehicle_num]
+			[landfill_arrival_time, landfill_departure_time, sts_id, landfill_id, vehicle_num, trip_count, generation_date]
 		);
 		res.send(q);
 	} catch (error) {
@@ -520,7 +609,9 @@ app.post("/create/route", async (req, res) => {
 app.get("/generate/fleet", async (req, res) => {
 	const db = await dbPromise;
 	try {
-		const { sts_id, landfill_id, total_weight } = req.query;
+		const { sts_id, total_weight } = req.query;
+		const q2 = await db.get(`SELECT landfill_id FROM sts WHERE id = ?`, [sts_id]);
+		const landfill_id = q2.landfill_id;
 
 		const vehicles = await db.all(
 			`
@@ -539,7 +630,7 @@ app.get("/generate/fleet", async (req, res) => {
 				break;
 			}
 			vehicles[i].weight = 0;
-			for (let j = 0; j < 3; j++) {
+			for (let j = 1; j <= 3; j++) {
 				if (v_total_weight - vehicles[i].capacity >= 0) {
 					vehicles[i].weight = vehicles[i].capacity;
 					fleet.push({
@@ -548,7 +639,8 @@ app.get("/generate/fleet", async (req, res) => {
 						capacity: vehicles[i].capacity,
 						fuel_cost_loaded: vehicles[i].fuel_cost_loaded,
 						fuel_cost_unloaded: vehicles[i].fuel_cost_unloaded,
-						weight: vehicles[i].capacity
+						weight: vehicles[i].capacity,
+						trip_count: j,
 					});
 					v_total_weight -= vehicles[i].capacity;
 				} else {
@@ -559,15 +651,23 @@ app.get("/generate/fleet", async (req, res) => {
 						capacity: vehicles[i].capacity,
 						fuel_cost_loaded: vehicles[i].fuel_cost_loaded,
 						fuel_cost_unloaded: vehicles[i].fuel_cost_unloaded,
-						weight: v_total_weight
+						weight: v_total_weight,
+						trip_count: j,
 					});
 					v_total_weight = 0;
 					break;
 				}
 			}
 		}
-		if (v_total_weight > 0) {
-			fleet = [];
+
+		for (let i = 0; i < fleet.length; i++) {
+			const q = await db.run(
+				`
+				INSERT INTO transport_record (sts_id, landfill_id, vehicle_num, trip_count, weight)
+				VALUES (?, ?, ?, ?, ?)
+			`,
+				[sts_id, landfill_id, fleet[i].reg_num, fleet[i].trip_count, fleet[i].weight]
+			);
 		}
 
 		res.send({ fleet });

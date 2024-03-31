@@ -43,16 +43,7 @@ import sqlite3 from "sqlite3";
 			FOREIGN KEY (id) REFERENCES user(id),
 			FOREIGN KEY (landfill_id) REFERENCES landfill(id)
 		);
-
-		DROP TABLE IF EXISTS sts;
-		CREATE TABLE IF NOT EXISTS sts(
-			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			ward_number INTEGER UNIQUE NOT NULL,
-			capacity INTEGER,
-			latitude REAL NOT NULL,
-			longitude REAL NOT NULL
-		);
-
+		
 		DROP TABLE IF EXISTS landfill;
 		CREATE TABLE IF NOT EXISTS landfill(
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -60,6 +51,18 @@ import sqlite3 from "sqlite3";
 			latitude REAL NOT NULL,
 			longitude REAL NOT NULL,
 			operational_timespan REAL
+		);
+
+		DROP TABLE IF EXISTS sts;
+		CREATE TABLE IF NOT EXISTS sts(
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			ward_number INTEGER UNIQUE NOT NULL,
+			capacity INTEGER,
+			latitude REAL NOT NULL,
+			longitude REAL NOT NULL,
+			landfill_id INTEGER,
+
+			FOREIGN KEY (landfill_id) REFERENCES landfill(id)
 		);
 
 		DROP TABLE IF EXISTS vehicle;
@@ -119,13 +122,16 @@ import sqlite3 from "sqlite3";
 			sts_id INTEGER,
 			landfill_id INTEGER,
 			vehicle_num INTEGER,
+			trip_count INTEGER,
+			generation_date DATE DEFAULT CURRENT_DATE,
+
 			weight INTEGER,
 			sts_arrival_time DATETIME,
 			sts_departure_time DATETIME,
 			landfill_arrival_time DATETIME,
 			landfill_departure_time DATETIME,
 
-			PRIMARY KEY (sts_id, landfill_id, vehicle_num)
+			PRIMARY KEY (sts_id, landfill_id, vehicle_num, trip_count, generation_date)
 			FOREIGN KEY (sts_id) REFERENCES route(sts_id),
 			FOREIGN KEY (landfill_id) REFERENCES route(landfill_id),
 			FOREIGN KEY (vehicle_num) REFERENCES vehicle(reg_num)

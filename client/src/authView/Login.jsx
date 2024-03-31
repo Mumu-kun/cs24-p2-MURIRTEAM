@@ -19,6 +19,10 @@ const Login = () => {
 			const res = await axiosApi.post("/auth/login", { email, password });
 			const data = res.data;
 
+			if (data.length === 0) {
+				throw new Error("Invalid credentials");
+			}
+
 			login(data[0]);
 		} catch (error) {
 			setMessage(error.message);
