@@ -119,8 +119,10 @@ const AddLandfillVehicleEntry = () => {
 					<input type="number" name="sts_id" placeholder="STS ID" className="input" required />
 					<input type="number" name="vehicle_num" placeholder="Vehicle Registration No" className="input" required />
 					<input type="number" name="trip_count" placeholder="Trip count" className="input" required />
-					<input type="datetime" name="landfill_arrival_time" className="input" />
-					<input type="datetime" name="landfill_departure_time" className="input" required />
+					<div>Arrival Time:</div>
+					<input type="datetime-local" name="landfill_arrival_time" className="input" />
+					<div>Departure Time:</div>
+					<input type="datetime-local" name="landfill_departure_time" className="input" />
 					<button className="btn btn--prim self-center">Create entry</button>
 				</form>
 			</div>

@@ -391,6 +391,7 @@ app.get("/entry/all/sts", async (req, res) => {
 		const landfill_id = q2.landfill_id;
 		const q = await db.all(
 			`SELECT * FROM transport_record WHERE sts_id = ? AND landfill_id = ? AND generation_date = ?
+			(sts_departure_time IS null or sts_arrival_time IS null)
 			order by vehicle_id asc, trip_count ASC`,
 			[sts_id, landfill_id, generation_date]
 		);

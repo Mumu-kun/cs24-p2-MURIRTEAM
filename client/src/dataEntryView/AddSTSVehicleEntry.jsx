@@ -203,8 +203,8 @@ const AddSTSVehicleEntry = () => {
 				<form ref={entryForm} onSubmit={createEntry} className="flex flex-col items-stretch gap-2">
 					<input type="number" name="vehicle_num" placeholder="Vehicle Registration No" className="input" required />
 					<input type="number" name="trip_count" placeholder="Trip count" className="input" required />
-					<input type="datetime" name="sts_arrival_time" className="input" />
-					<input type="datetime" name="sts_departure_time" className="input" required />
+					<input type="datetime-local" name="sts_arrival_time" className="input" />
+					<input type="datetime-local" name="sts_departure_time" className="input" />
 					<button className="btn btn--prim self-center">Create entry</button>
 				</form>
 			</div>
