@@ -1,6 +1,6 @@
 import { useAuthContext } from "@/hooks/useAuthContext";
 import axiosApi from "@/utils/axios";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 
 const Login = () => {
@@ -19,8 +19,6 @@ const Login = () => {
 			const res = await axiosApi.post("/auth/login", { email, password });
 			const data = res.data;
 
-			console.log(data);
-
 			if (data.length === 0) {
 				throw new Error("Invalid credentials");
 			}
@@ -30,6 +28,10 @@ const Login = () => {
 			setMessage(error.message);
 		}
 	};
+
+	useEffect(() => {
+		document.title = "Login";
+	}, []);
 
 	return (
 		<div className="flex flex-1 flex-col items-center justify-center">

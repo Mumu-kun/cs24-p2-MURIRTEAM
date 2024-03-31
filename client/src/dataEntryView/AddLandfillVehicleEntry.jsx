@@ -60,7 +60,7 @@ const AddLandfillVehicleEntry = () => {
 			const data = Object.fromEntries(formData);
 			try {
 				const res = await axiosApi.get("/generate/slip", {
-					params: data
+					params: data,
 				});
 
 				setSlip(res.data);
@@ -75,6 +75,7 @@ const AddLandfillVehicleEntry = () => {
 
 	useEffect(() => {
 		getLandfill();
+		document.title = "Manage Landfill";
 	}, []);
 
 	useEffect(() => {

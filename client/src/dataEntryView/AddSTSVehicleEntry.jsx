@@ -37,8 +37,8 @@ const AddSTSVehicleEntry = () => {
 			const res = await axiosApi.get("/entry/all/STS", {
 				params: {
 					sts_id: sts.id,
-					generation_date: new Date().toISOString().split("T")[0]
-				}
+					generation_date: new Date().toISOString().split("T")[0],
+				},
 			});
 
 			setEntries(res.data);
@@ -63,7 +63,7 @@ const AddSTSVehicleEntry = () => {
 
 	const getFleet = async (e) => {
 		try {
-			const res = await axiosApi.get("/get/fleet", { params: {sts_id: sts.id} });
+			const res = await axiosApi.get("/get/fleet", { params: { sts_id: sts.id } });
 
 			setFleet(res.data);
 			console.log(fleet);
@@ -131,6 +131,7 @@ const AddSTSVehicleEntry = () => {
 
 	useEffect(() => {
 		getSTS();
+		document.title = "Manage STS";
 	}, []);
 
 	useEffect(() => {
@@ -207,8 +208,8 @@ const AddSTSVehicleEntry = () => {
 										<li>Trip count: {vehicle.trip_count}</li>
 									</ul>
 								</li>
-							</>)
-						)}
+							</>
+						))}
 					</ol>
 				</div>
 			)}

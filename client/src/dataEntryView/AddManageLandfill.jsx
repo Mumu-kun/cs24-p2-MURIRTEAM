@@ -29,6 +29,7 @@ const LandfillEntry = ({ landfill, unassignedLandfillManagers, getUnassignedLand
 
 	useEffect(() => {
 		getManagers();
+		document.title = "Admin Landfill";
 	}, []);
 
 	return (

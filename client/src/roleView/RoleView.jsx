@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { RoleItem } from "./RoleItem";
 import axiosApi from "@/utils/axios";
 
@@ -48,6 +48,7 @@ const RoleView = () => {
 
 	useEffect(() => {
 		getRoles();
+		document.title = "Role View";
 	}, []);
 
 	useEffect(() => {
@@ -71,10 +72,10 @@ const RoleView = () => {
 					<div className="grid h-[19rem] grid-cols-[repeat(2,max-content)] gap-2 overflow-auto px-4 py-3">
 						{!!permissions &&
 							permissions.map((permission) => (
-								<>
-									<div key={`${permission.permission_id}`}>{permission.permission_id}</div>
-									<div key={`${permission.permission_id}desc`}>{permission.description}</div>
-								</>
+								<Fragment key={`${permission.permission_id}`}>
+									<div>{permission.permission_id}</div>
+									<div>{permission.description}</div>
+								</Fragment>
 							))}
 					</div>
 					<form ref={permissionForm} onSubmit={addPermission}>

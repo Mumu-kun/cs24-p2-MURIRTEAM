@@ -1,6 +1,6 @@
 import Confirmation from "@/my-components/Confirmation";
 import axiosApi from "@/utils/axios";
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 
 export const RoleItem = ({ role, permissions: allPermissions, getRoles }) => {
 	const [expanded, setExpanded] = useState(false);
@@ -46,14 +46,10 @@ export const RoleItem = ({ role, permissions: allPermissions, getRoles }) => {
 					>
 						{!!permissions && permissions.length > 0 ? (
 							permissions.map((permission) => (
-								<>
-									<div key={`${role.id}${permission.permission_id}`} className="pl-4">
-										{permission.permission_id}
-									</div>
-									<div key={`${role.id}${permission.permission_id}desc`} className="pr-4">
-										{permission.description}
-									</div>
-								</>
+								<Fragment key={`${role.id}${permission.permission_id}`}>
+									<div className="pl-4">{permission.permission_id}</div>
+									<div className="pr-4">{permission.description}</div>
+								</Fragment>
 							))
 						) : (
 							<div className="col-span-2">No permissions</div>

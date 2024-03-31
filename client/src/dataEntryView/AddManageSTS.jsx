@@ -29,6 +29,7 @@ const STSEntry = ({ sts, unassignedStsManagers, getUnassignedStsManagers }) => {
 
 	useEffect(() => {
 		getManagers();
+		document.title = "Admin STS";
 	}, []);
 
 	return (

@@ -1,9 +1,13 @@
 import { useAuthContext } from "@/hooks/useAuthContext";
-import React from "react";
+import React, { useEffect } from "react";
 import { Link } from "react-router-dom";
 
 const Home = () => {
 	const { user } = useAuthContext();
+
+	useEffect(() => {
+		document.title = "Home";
+	}, []);
 
 	return (
 		<div className="my-auto flex flex-col items-center justify-center">

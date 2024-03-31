@@ -57,6 +57,7 @@ const UserManagementView = () => {
 	useEffect(() => {
 		getUsers();
 		getRoles();
+		document.title = "User Management";
 	}, []);
 
 	return (

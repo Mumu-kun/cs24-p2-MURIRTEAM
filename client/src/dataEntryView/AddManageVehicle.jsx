@@ -59,6 +59,7 @@ const Vehicle = () => {
 	useEffect(() => {
 		getVehicles();
 		getSts();
+		document.title = "Manage Vehicles";
 	}, []);
 
 	return (
