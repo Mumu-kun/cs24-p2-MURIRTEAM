@@ -37,8 +37,8 @@ const AddSTSVehicleEntry = () => {
 			const res = await axiosApi.get("/entry/all/STS", {
 				params: {
 					sts_id: sts.id,
-					generation_date: new Date().toISOString().split("T")[0],
-				},
+					generation_date: new Date().toISOString().split("T")[0]
+				}
 			});
 
 			setEntries(res.data);
@@ -61,6 +61,17 @@ const AddSTSVehicleEntry = () => {
 		}
 	};
 
+	const getFleet = async (e) => {
+		try {
+			const res = await axiosApi.get("/get/fleet", { params: {sts_id: sts.id} });
+
+			setFleet(res.data);
+			console.log(fleet);
+		} catch (error) {
+			console.error(error);
+		}
+	};
+
 	const generateFleet = async (e) => {
 		e.preventDefault();
 		const formData = new FormData(e.target);
@@ -71,7 +82,8 @@ const AddSTSVehicleEntry = () => {
 		try {
 			const res = await axiosApi.get("/generate/fleet", { params: data });
 
-			setFleet(res.data);
+			setFleet(res.data.fleet);
+			console.log(res.data, fleet);
 			fleetForm?.current?.reset();
 		} catch (error) {
 			console.error(error);
@@ -84,8 +96,9 @@ const AddSTSVehicleEntry = () => {
 			const formData = new FormData(e.target);
 			formData.append("sts_id", sts.id);
 
+			const data = Object.fromEntries(formData);
 			try {
-				const res = await axiosApi.post("/entry/STS", formData);
+				const res = await axiosApi.post("/entry/STS", data);
 
 				getEntries();
 				entryForm?.current?.reset();
@@ -125,6 +138,7 @@ const AddSTSVehicleEntry = () => {
 			getVehicles();
 			getRoute();
 			getEntries();
+			getFleet();
 		}
 	}, [sts]);
 
@@ -172,15 +186,15 @@ const AddSTSVehicleEntry = () => {
 			<div className="mb-8">
 				<h2 className="mb-4 text-center text-xl">Generate fleet</h2>
 				<form ref={fleetForm} onSubmit={generateFleet} className="flex flex-col items-stretch gap-2">
-					<input type="number" name="weight" placeholder="Total weight of waste" className="input" required />
+					<input type="number" name="total_weight" placeholder="Total weight of waste" className="input" required />
 					<button className="btn btn--prim self-center">Generate</button>
 				</form>
 			</div>
-			{fleet && (
+			{fleet.length > 0 && (
 				<div className="mb-8">
 					<h3 className="mb-4 text-center text-xl">Fleet:</h3>
 					<ol>
-						{fleet.forEach((vehicle) => {
+						{fleet.map((vehicle) => (
 							<>
 								<li>
 									<ul>
@@ -193,8 +207,8 @@ const AddSTSVehicleEntry = () => {
 										<li>Trip count: {vehicle.trip_count}</li>
 									</ul>
 								</li>
-							</>;
-						})}
+							</>)
+						)}
 					</ol>
 				</div>
 			)}

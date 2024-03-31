@@ -43,6 +43,7 @@ app.get("/", async (req, res) => {
 		const q7 = await db.all(`SELECT * FROM landfill`);
 		const q8 = await db.all(`SELECT * FROM route`);
 		const q9 = await db.all(`SELECT * FROM transport_record`);
+		//await db.run(`DELETE FROM transport_record`);
 		res.send({ q1, q2, q3, q4, q5, q6, q7, q8, q9 });
 	} catch (error) {
 		console.error("error executing query: ", error);
@@ -365,6 +366,7 @@ app.post("/entry/STS", async (req, res) => {
 	const db = await dbPromise;
 	try {
 		const { sts_id, vehicle_num, trip_count, sts_arrival_time, sts_departure_time } = req.body;
+		console.log(req.body);
 		const q2 = await db.get(`SELECT landfill_id FROM sts WHERE id = ?`, [sts_id]);
 		const landfill_id = q2.landfill_id;
 		const q = await db.run(
@@ -381,6 +383,8 @@ app.post("/entry/STS", async (req, res) => {
 	}
 });
 
+//(sts_departure_time IS null or sts_arrival_time IS null)
+
 // Get all entries for all vehicles from an STS to a landfill
 app.get("/entry/all/sts", async (req, res) => {
 	const db = await dbPromise;
@@ -391,8 +395,8 @@ app.get("/entry/all/sts", async (req, res) => {
 		const landfill_id = q2.landfill_id;
 		const q = await db.all(
 			`SELECT * FROM transport_record WHERE sts_id = ? AND landfill_id = ? AND generation_date = ?
-			(sts_departure_time IS null or sts_arrival_time IS null)
-			order by vehicle_id asc, trip_count ASC`,
+			AND sts_departure_time IS NOT NULL
+			order by vehicle_num asc, trip_count ASC`,
 			[sts_id, landfill_id, generation_date]
 		);
 		console.log(q2, q);
@@ -590,6 +594,20 @@ app.get("/rbac/roles", async (req, res) => {
 	}
 });
 
+// Add a permission to a role
+app.post("/rbac/roles/:roleId/permissions", async (req, res) => {
+	const db = await dbPromise;
+	try {
+		const {permission_id} = req.body;
+		const {roleId} = req.params;
+		const q = await db.run(`INSERT INTO role_permission (role_id, permission_id) VALUES (?, ?)`, [roleId, permission_id]);
+		res.send(q);
+	} catch (error) {
+		console.error("error executing query: ", error);
+		res.status(500).json({ error: "Internal Server Error" });
+	}
+});
+
 app.get("/rbac/permissions", async (req, res) => {
 	const db = await dbPromise;
 	try {
@@ -610,6 +628,7 @@ app.post("rbac/permissions", async (req, res) => {
 		const { role_id, permission_id, description } = req.body;
 
 		let q = await db.run(`INSERT INTO permission (description) VALUES (?)`, [description]);
+		res.send(q);
 	} catch (error) {
 		console.error("error executing query: ", error);
 		res.status(500).json({ error: "Internal Server Error" });
@@ -671,6 +690,8 @@ app.get("/generate/fleet", async (req, res) => {
 			[sts_id]
 		);
 
+		console.log(total_weight);
+
 		let v_total_weight = total_weight;
 		let fleet = [];
 		for (let i = 0; i < vehicles.length; i++) {
@@ -718,7 +739,32 @@ app.get("/generate/fleet", async (req, res) => {
 			);
 		}
 
+		console.log(fleet);
 		res.send({ fleet });
+	} catch (error) {
+		console.error("error executing query: ", error);
+		res.status(500).json({ error: "Internal Server Error" });
+	}
+});
+
+// Get created fleet
+app.get("/get/fleet", async (req, res) => {
+	const db = await dbPromise;
+	try {
+		const { sts_id } = req.query;
+		const q = await db.get(`SELECT * FROM route WHERE sts_id = ?`, [sts_id]);
+		const landfill_id = q.landfill_id;
+
+		const dt = await db.get(`SELECT CURRENT_DATE AS cd FROM landfill`);
+		console.log(dt.cd);
+
+		const q2 = await db.all(`
+			SELECT V.*, TR.trip_count, TR.weight
+			FROM transport_record TR JOIN vehicle V ON TR.vehicle_num = V.reg_num
+			WHERE TR.sts_id = ? AND TR.landfill_id = ? AND TR.generation_date = CURRENT_DATE
+		`, [sts_id, landfill_id]);
+		console.log(q2);
+		res.send(q2);
 	} catch (error) {
 		console.error("error executing query: ", error);
 		res.status(500).json({ error: "Internal Server Error" });
@@ -730,6 +776,7 @@ app.get("/generate/slip", async (req, res) => {
 	const db = await dbPromise;
 	try {
 		const { sts_id, vehicle_num, trip_count } = req.query;
+		console.log(req.query);
 
 		const q2 = await db.get(`SELECT landfill_id FROM sts WHERE id = ?`, [sts_id]);
 		const landfill_id = q2.landfill_id;
@@ -745,6 +792,9 @@ app.get("/generate/slip", async (req, res) => {
 		`,
 			[sts_id, landfill_id, vehicle_num, trip_count]
 		);
+
+		console.log(sts_id, landfill_id, vehicle_num, trip_count);
+		console.log(q);
 
 		const cost =
 			(q.fuel_cost_unloaded + (q.weight / q.capacity) * (q.fuel_cost_loaded - q.fuel_cost_unloaded)) * q.distance;

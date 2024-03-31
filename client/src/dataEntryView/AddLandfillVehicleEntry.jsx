@@ -38,8 +38,9 @@ const AddLandfillVehicleEntry = () => {
 			e.preventDefault();
 			const formData = new FormData(e.target);
 
+			const data = Object.fromEntries(formData);
 			try {
-				const res = await axiosApi.post("/entry/landfill", formData);
+				const res = await axiosApi.post("/entry/landfill", data);
 
 				getVehicles();
 				entryForm?.current?.reset();
@@ -56,8 +57,11 @@ const AddLandfillVehicleEntry = () => {
 			e.preventDefault();
 			const formData = new FormData(e.target);
 
+			const data = Object.fromEntries(formData);
 			try {
-				const res = await axiosApi.post("/generate/slip", formData);
+				const res = await axiosApi.get("/generate/slip", {
+					params: data
+				});
 
 				setSlip(res.data);
 				slipForm?.current?.reset();
@@ -142,8 +146,8 @@ const AddLandfillVehicleEntry = () => {
 						<li>
 							Timestamps:
 							<ul>
-								<li>Arrival: {slip.timestamp.arrival}</li>
-								<li>Departure: {slip.timestamp.departure}</li>
+								<li>Arrival: {slip.timestamps.arrival}</li>
+								<li>Departure: {slip.timestamps.departure}</li>
 							</ul>
 						</li>
 						<li>Weight of waste: {slip.weight_of_waste}</li>
@@ -160,8 +164,8 @@ const AddLandfillVehicleEntry = () => {
 						<li>
 							Fuel allocation:
 							<ul>
-								<li>Total distance: {slip.truck.total_distance}</li>
-								<li>Total cost: {slip.truck.total_cost}</li>
+								<li>Total distance: {slip.fuel_allocation.total_distance}</li>
+								<li>Total cost: {slip.fuel_allocation.total_cost}</li>
 							</ul>
 						</li>
 					</ul>
