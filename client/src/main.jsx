@@ -47,6 +47,10 @@ const router = createBrowserRouter([
 				path: "/sts",
 				element: LazyLoadRoutes("@/dataEntryView/AddSTSVehicleEntry"),
 			},
+			{
+				path: "/landfill",
+				element: LazyLoadRoutes("@/dataEntryView/AddLandfillVehicleEntry"),
+			},
 		],
 	},
 ]);

@@ -13,7 +13,7 @@ const AddLandfillVehicleEntry = () => {
 	const getLandfill = async () => {
 		try {
 			const res = await axiosApi.get("/landfill/manager/" + user.id);
-			setLandfill(res.data);
+			setLandfill(res.data[0]);
 		} catch (error) {
 			console.error(error);
 		}
@@ -23,9 +23,10 @@ const AddLandfillVehicleEntry = () => {
 		try {
 			const res = await axiosApi.get("/entry/all/landfill", {
 				params: {
-					landfill_id: landfill.id
-				}
+					landfill_id: landfill.id,
+				},
 			});
+			console.log(res.data);
 			setVehicles(res.data);
 		} catch (error) {
 			console.error(error);
@@ -70,8 +71,17 @@ const AddLandfillVehicleEntry = () => {
 
 	useEffect(() => {
 		getLandfill();
-		getVehicles();
 	}, []);
+
+	useEffect(() => {
+		if (landfill) {
+			getVehicles();
+		}
+	}, [landfill]);
+
+	if (!landfill) {
+		return <p>Loading...</p>;
+	}
 
 	return (
 		<>
@@ -88,7 +98,7 @@ const AddLandfillVehicleEntry = () => {
 			<div className="mb-8">
 				<h3>Vehicle list:</h3>
 				<ol>
-					{vehicles.forEach((vehicle) => {
+					{vehicles.map((vehicle) => (
 						<>
 							<li>
 								<ul>
@@ -99,8 +109,8 @@ const AddLandfillVehicleEntry = () => {
 									<li>STS departure time: {vehicle.sts_departure_time}</li>
 								</ul>
 							</li>
-						</>;
-					})}
+						</>
+					))}
 				</ol>
 			</div>
 			<div className="mb-8">
@@ -123,34 +133,38 @@ const AddLandfillVehicleEntry = () => {
 					<button className="btn btn--prim self-center">Generate</button>
 				</form>
 			</div>
-			{slip &&
-			<div className="mb-8">
-				<h2>Slip:</h2>
-				<ul>
-					<li>Timestamps: 
-						<ul>
-							<li>Arrival: {slip.timestamp.arrival}</li>
-							<li>Departure: {slip.timestamp.departure}</li>
-						</ul>
-					</li>
-					<li>Weight of waste: {slip.weight_of_waste}</li>
-					<li>Truck: 
-						<ul>
-							<li>Registration number: {slip.truck.reg_num}</li>
-							<li>Type: {slip.truck.type}</li>
-							<li>Capacity: {slip.truck.capacity}</li>
-							<li>Fuel cost (loaded): {slip.truck.fuel_cost_loaded}</li>
-							<li>Fuel cost (unloaded): {slip.truck.fuel_cost_unloaded}</li>
-						</ul>
-					</li>
-					<li>Fuel allocation:
-						<ul>
-							<li>Total distance: {slip.truck.total_distance}</li>
-							<li>Total cost: {slip.truck.total_cost}</li>
-						</ul>
-					</li>
-				</ul>
-			</div>}
+			{slip && (
+				<div className="mb-8">
+					<h2>Slip:</h2>
+					<ul>
+						<li>
+							Timestamps:
+							<ul>
+								<li>Arrival: {slip.timestamp.arrival}</li>
+								<li>Departure: {slip.timestamp.departure}</li>
+							</ul>
+						</li>
+						<li>Weight of waste: {slip.weight_of_waste}</li>
+						<li>
+							Truck:
+							<ul>
+								<li>Registration number: {slip.truck.reg_num}</li>
+								<li>Type: {slip.truck.type}</li>
+								<li>Capacity: {slip.truck.capacity}</li>
+								<li>Fuel cost (loaded): {slip.truck.fuel_cost_loaded}</li>
+								<li>Fuel cost (unloaded): {slip.truck.fuel_cost_unloaded}</li>
+							</ul>
+						</li>
+						<li>
+							Fuel allocation:
+							<ul>
+								<li>Total distance: {slip.truck.total_distance}</li>
+								<li>Total cost: {slip.truck.total_cost}</li>
+							</ul>
+						</li>
+					</ul>
+				</div>
+			)}
 		</>
 	);
 };

@@ -352,7 +352,7 @@ app.get("/vehicles/STS/:id", async (req, res) => {
 	const db = await dbPromise;
 	try {
 		const sts_id = req.params.id;
-		const q = await db.all(`SELECT * FROM vehicles WHERE sts_id = ?`, [sts_id]);
+		const q = await db.all(`SELECT * FROM vehicle WHERE sts_id = ?`, [sts_id]);
 		res.send(q);
 	} catch (error) {
 		console.error("error executing query: ", error);
@@ -385,13 +385,16 @@ app.post("/entry/STS", async (req, res) => {
 app.get("/entry/all/sts", async (req, res) => {
 	const db = await dbPromise;
 	try {
-		const { sts_id } = req.query;
-		const q2 = await db.run(`SELECT landfill_id FROM sts WHERE id = ?`, [sts_id]);
+		const { sts_id, generation_date } = req.query;
+		console.log(req.query);
+		const q2 = await db.get(`SELECT landfill_id FROM sts WHERE id = ?`, [sts_id]);
 		const landfill_id = q2.landfill_id;
 		const q = await db.all(
-			`SELECT * FROM transport_record WHERE sts_id = ? AND landfill_id = ? AND sts_departure_time IS NOT NULL`,
-			[sts_id, landfill_id]
+			`SELECT * FROM transport_record WHERE sts_id = ? AND landfill_id = ? AND generation_date = ?
+			order by vehicle_id asc, trip_count ASC`,
+			[sts_id, landfill_id, generation_date]
 		);
+		console.log(q2, q);
 		res.send(q);
 	} catch (error) {
 		console.error("error executing query: ", error);
@@ -617,7 +620,7 @@ app.get("/route/STS", async (req, res) => {
 	const db = await dbPromise;
 	try {
 		const { sts_id } = req.query;
-		const q = await db.all(`SELECT * FROM route WHERE sts_id = ?`, [sts_id]);
+		const q = await db.get(`SELECT * FROM route WHERE sts_id = ?`, [sts_id]);
 		const landfill_id = q.landfill_id;
 		const q2 = await db.get(`SELECT * FROM route WHERE sts_id = ? AND landfill_id = ?`, [sts_id, landfill_id]);
 		res.send(q2);
@@ -632,8 +635,8 @@ app.post("/create/route", async (req, res) => {
 	const db = await dbPromise;
 	try {
 		const { sts_id, time, distance } = req.body;
-
 		const q2 = await db.get(`SELECT landfill_id FROM sts WHERE id = ?`, [sts_id]);
+
 		const landfill_id = q2.landfill_id;
 
 		let q = await db.run(`INSERT INTO route (sts_id, landfill_id, time, distance) VALUES (?, ?, ?, ?)`, [

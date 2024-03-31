@@ -37,6 +37,11 @@ const Home = () => {
 						STS
 					</Link>
 				)}
+				{user?.role_id === 4 && (
+					<Link to="/landfill" className="btn--prim">
+						Landfill
+					</Link>
+				)}
 			</div>
 		</div>
 	);
