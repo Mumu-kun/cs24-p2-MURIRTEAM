@@ -37,3 +37,7 @@ To start the frontend server, navigate to client directory and run
 npm run dev
 ```
 The web-app is now accessible via port 5173 of localhost.
+
+### Initial Admin Credentials
+email: admin@gmail.com
+password: 1234
